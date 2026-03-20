@@ -1,6 +1,6 @@
 {
   "name": "stepsnap",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "Annotated screenshot walkthrough builder & viewer — open-source alternative to Scribe",
   "type": "module",
   "main": "./dist/stepsnap.umd.cjs",
@@ -8,6 +8,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/stepsnap.js",
       "require": "./dist/stepsnap.umd.cjs"
     }
@@ -17,7 +18,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build && tsc -p tsconfig.lib.json",
     "build:embed": "cross-env BUILD_MODE=embed vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -52,5 +53,5 @@
     "react",
     "scribe"
   ],
-  "license": "MIT"
+  "license": "AGPL-3.0-only"
 }
