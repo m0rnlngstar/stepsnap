@@ -6,6 +6,14 @@ Create step-by-step visual guides with annotated screenshots, smooth transitions
 
 ---
 
+## Preview
+
+| Builder | Viewer |
+|---------|--------|
+| ![StepSnap Builder](docs/screenshot-builder.png) | ![StepSnap Viewer](docs/screenshot-viewer.png) |
+
+---
+
 ## Features
 
 - **Builder** — upload screenshots, click to place annotations (circle or arrow), resize, reorder steps
