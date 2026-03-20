@@ -204,7 +204,7 @@ interface Annotation {
 ## Development
 
 ```bash
-git clone https://github.com/your-username/stepsnap
+git clone https://github.com/m0rnlngstar/stepsnap
 cd stepsnap
 npm install
 npm run dev         # demo app at http://localhost:5173
@@ -216,7 +216,7 @@ npm run build:embed # build standalone bundle → dist-embed/
 
 ## Roadmap
 
-- [ ] Publish to npm
+- [x] Publish to npm
 - [ ] Keyboard navigation (← →)
 - [ ] Fullscreen mode
 - [ ] Export walkthrough as PDF / GIF
@@ -224,6 +224,14 @@ npm run build:embed # build standalone bundle → dist-embed/
 
 ---
 
+## Contributing
+
+Contributions are welcome. Fork the repo, make your changes, and open a pull request — improvements get merged back into the project so everyone benefits.
+
+---
+
 ## License
 
-MIT
+[AGPL-3.0-only](./LICENSE)
+
+Free to use in your apps and websites. If you distribute or offer this software as a service, you must publish your source code under the same license.
