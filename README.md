@@ -8,6 +8,8 @@ Create step-by-step visual guides with annotated screenshots, smooth transitions
 
 ## Preview
 
+![StepSnap demo](docs/stepsnap-demo.gif)
+
 | Builder | Viewer |
 |---------|--------|
 | ![StepSnap Builder](docs/screenshot-builder.png) | ![StepSnap Viewer](docs/screenshot-viewer.png) |
