@@ -20,6 +20,7 @@
     "dev": "vite",
     "build": "vite build && tsc -p tsconfig.lib.json",
     "build:embed": "cross-env BUILD_MODE=embed vite build",
+    "build:wc": "vite build --config vite.wc.config.ts",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -53,5 +54,9 @@
     "react",
     "scribe"
   ],
-  "license": "AGPL-3.0-only"
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1"
+  }
 }

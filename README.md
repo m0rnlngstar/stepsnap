@@ -153,6 +153,26 @@ StepSnap.unmount('#my-guide')
 
 ---
 
+## Web Component (framework-agnostic)
+
+Use `<stepsnap-viewer>` on any webpage or framework:
+
+```html
+<stepsnap-viewer
+  accent-color="#6366f1"
+  data='{"title":"My guide","steps":[{"id":"1","imageUrl":"https://...","caption":"Step 1"}]}'
+></stepsnap-viewer>
+<script src="stepsnap-viewer-wc.iife.js"></script>
+```
+
+Build the web component bundle:
+```bash
+npm run build:wc
+# outputs dist-wc/stepsnap-viewer-wc.iife.js
+```
+
+---
+
 ## API
 
 ### `<WalkthroughViewer />`
@@ -220,7 +240,7 @@ npm run build:embed # build standalone bundle → dist-embed/
 - [ ] Keyboard navigation (← →)
 - [ ] Fullscreen mode
 - [ ] Export walkthrough as PDF / GIF
-- [ ] Web Component (`<stepsnap-viewer>`) for non-JS frameworks
+- [x] Web Component (`<stepsnap-viewer>`) for non-JS frameworks
 
 ---
 
