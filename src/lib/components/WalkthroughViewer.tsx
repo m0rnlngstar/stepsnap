@@ -21,8 +21,11 @@ export function WalkthroughViewer({ data, accentColor = '#6366f1' }: Props) {
   const [transitioning, setTransitioning] = useState(false)
   const [direction, setDirection] = useState<'next' | 'prev'>('next')
   const [zoomed, setZoomed] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
   const navRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const zoomRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const total = data.steps.length
   const step = data.steps[currentIndex]
@@ -39,6 +42,32 @@ export function WalkthroughViewer({ data, accentColor = '#6366f1' }: Props) {
   useEffect(() => () => {
     if (navRef.current) clearTimeout(navRef.current)
     if (zoomRef.current) clearTimeout(zoomRef.current)
+  }, [])
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!started) return
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault()
+        handleNext()
+      } else if (e.key === 'ArrowLeft') {
+        if (currentIndex > 0) navigate('prev')
+      } else if (e.key === 'Escape') {
+        if (isFullscreen) document.exitFullscreen()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [started, currentIndex, isFullscreen, transitioning])
+
+  // Fullscreen sync
+  useEffect(() => {
+    function onFsChange() {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
   }, [])
 
   if (!total) return null
@@ -60,6 +89,82 @@ export function WalkthroughViewer({ data, accentColor = '#6366f1' }: Props) {
   function handleNext() {
     if (isLast) { setStarted(false); setCurrentIndex(0) }
     else navigate('next')
+  }
+
+  function toggleFullscreen() {
+    if (isFullscreen) {
+      document.exitFullscreen()
+    } else {
+      containerRef.current?.requestFullscreen()
+    }
+  }
+
+  async function exportPDF() {
+    setPdfLoading(true)
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+      const pageW = doc.internal.pageSize.getWidth()
+      const pageH = doc.internal.pageSize.getHeight()
+      const margin = 32
+
+      for (let i = 0; i < data.steps.length; i++) {
+        const s = data.steps[i]
+        // Draw slide number header
+        if (i > 0) doc.addPage()
+        doc.setFillColor(15, 15, 19)
+        doc.rect(0, 0, pageW, pageH, 'F')
+
+        // Load image
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve()
+          img.onerror = reject
+          img.src = s.imageUrl
+        })
+
+        // Draw image
+        const captionH = s.caption ? 48 : 0
+        const availH = pageH - margin * 2 - captionH
+        const availW = pageW - margin * 2
+        const ratio = Math.min(availW / img.naturalWidth, availH / img.naturalHeight)
+        const imgW = img.naturalWidth * ratio
+        const imgH = img.naturalHeight * ratio
+        const imgX = margin + (availW - imgW) / 2
+        const imgY = margin
+
+        // Use canvas to get image data
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth
+        canvas.height = img.naturalHeight
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0)
+        const imgData = canvas.toDataURL('image/jpeg', 0.92)
+        doc.addImage(imgData, 'JPEG', imgX, imgY, imgW, imgH)
+
+        // Caption
+        if (s.caption) {
+          doc.setFontSize(12)
+          doc.setTextColor(192, 192, 208)
+          doc.text(s.caption, margin, imgY + imgH + 22, { maxWidth: availW })
+        }
+
+        // Slide counter
+        doc.setFontSize(10)
+        doc.setTextColor(80, 80, 100)
+        doc.text(`${i + 1} / ${data.steps.length}`, pageW - margin, margin - 10, { align: 'right' })
+      }
+
+      doc.save('walkthrough.pdf')
+    } catch (err) {
+      console.error('PDF export failed', err)
+    } finally {
+      setPdfLoading(false)
+    }
   }
 
   if (!started) {
@@ -91,14 +196,31 @@ export function WalkthroughViewer({ data, accentColor = '#6366f1' }: Props) {
     : { transform: 'scale(1)', transformOrigin: `${ann?.x ?? 50}% ${ann?.y ?? 50}%`, transition: 'transform 0.45s cubic-bezier(0.4,0,0.2,1)' }
 
   return (
-    <div style={v.shell}>
+    <div ref={containerRef} style={{ ...v.shell, ...(isFullscreen ? v.shellFullscreen : {}) }}>
       {/* Top bar */}
       <div style={v.topBar}>
         <div style={v.topLeft}>
           <div style={{ ...v.dot, background: accentColor }} />
           <span style={v.topTitle}>{data.title}</span>
         </div>
-        <span style={v.counter}>{currentIndex + 1}<span style={v.counterSep}>/</span>{total}</span>
+        <div style={v.topRight}>
+          <span style={v.counter}>{currentIndex + 1}<span style={v.counterSep}>/</span>{total}</span>
+          <button
+            style={v.iconBtn}
+            title="Export PDF"
+            onClick={exportPDF}
+            disabled={pdfLoading}
+          >
+            {pdfLoading ? '…' : '⬇'}
+          </button>
+          <button
+            style={v.iconBtn}
+            title={isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? '⊡' : '⛶'}
+          </button>
+        </div>
       </div>
 
       {/* Image */}
@@ -201,15 +323,22 @@ const v: Record<string, React.CSSProperties> = {
   },
   /* viewer shell */
   shell: { borderRadius: 16, overflow: 'hidden', background: '#0f0f13', border: '1px solid #1e1e2a' },
+  shellFullscreen: { borderRadius: 0, height: '100vh', display: 'flex', flexDirection: 'column' },
   topBar: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '11px 16px', borderBottom: '1px solid #1a1a24',
   },
   topLeft: { display: 'flex', alignItems: 'center', gap: 9 },
+  topRight: { display: 'flex', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
   topTitle: { fontSize: 13, fontWeight: 600, color: '#9090a8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 280 },
   counter: { fontSize: 13, fontWeight: 700, color: '#f0f0f5', letterSpacing: '.02em' },
   counterSep: { color: '#3a3a4a', margin: '0 3px' },
+  iconBtn: {
+    background: 'transparent', border: '1px solid #2a2a38', borderRadius: 6,
+    color: '#888', fontSize: 13, cursor: 'pointer', padding: '3px 7px',
+    lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
   /* image */
   imgWrap: { position: 'relative', display: 'block', userSelect: 'none' },
   img: { width: '100%', display: 'block' },
