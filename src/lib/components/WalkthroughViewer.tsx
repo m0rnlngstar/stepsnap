@@ -4,6 +4,7 @@ import type { WalkthroughData } from '../types'
 interface Props {
   data: WalkthroughData
   accentColor?: string
+  maxHeight?: number
 }
 
 const ArrowSVG = ({ color, size }: { color: string; size: number }) => (
@@ -15,7 +16,8 @@ const ArrowSVG = ({ color, size }: { color: string; size: number }) => (
 const ZOOM_SCALE = 2.2
 const ZOOM_DELAY = 380
 
-export function WalkthroughViewer({ data, accentColor = '#6366f1' }: Props) {
+export function WalkthroughViewer({ data, accentColor = '#6366f1', maxHeight }: Props) {
+  const resolvedMaxHeight = maxHeight ?? 480
   const [started, setStarted] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [transitioning, setTransitioning] = useState(false)
@@ -225,9 +227,9 @@ export function WalkthroughViewer({ data, accentColor = '#6366f1' }: Props) {
       {/* Image */}
       <div style={slideAnim}>
         <div style={{ ...v.imgWrap, cursor: 'pointer' }} onClick={handleNext}>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={zoomAnim}>
-              <img src={step.imageUrl} alt="" style={v.img} draggable={false} />
+          <div style={{ overflow: 'hidden', maxHeight: resolvedMaxHeight, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ ...zoomAnim, width: '100%' }}>
+              <img src={step.imageUrl} alt="" style={{ ...v.img, maxHeight: resolvedMaxHeight, objectFit: 'contain' }} draggable={false} />
               {ann && (
                 ann.type === 'circle' ? (
                   <div style={{

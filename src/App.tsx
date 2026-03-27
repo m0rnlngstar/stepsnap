@@ -52,7 +52,7 @@ export default function App() {
         {mode === 'edit' ? (
           <WalkthroughBuilder data={data} onChange={setData} onUpload={fakeUpload} accentColor={ACCENT} />
         ) : (
-          <WalkthroughViewer data={data} accentColor={ACCENT} />
+          <WalkthroughViewer data={data} accentColor={ACCENT} maxHeight={data.maxHeight} />
         )}
       </div>
     </div>

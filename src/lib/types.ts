@@ -20,6 +20,7 @@ export interface Step {
 export interface WalkthroughData {
   title: string
   steps: Step[]
+  maxHeight?: number
 }
 
 export interface UploadFn {

@@ -10,6 +10,28 @@ interface Props {
 
 function uid() { return Math.random().toString(36).slice(2, 10) }
 
+async function compressImage(file: File, maxWidth = 1920, quality = 0.82): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxWidth / img.width)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(
+        (blob) => resolve(blob ? new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }) : file),
+        'image/jpeg',
+        quality
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.src = url
+  })
+}
+
 const defaultAnnotation = (accentColor: string) => ({
   type: 'circle' as AnnotationType,
   x: 50, y: 50,
@@ -38,6 +60,7 @@ export function WalkthroughBuilder({ data, onChange, onUpload, accentColor = '#6
   const [openId, setOpenId] = useState<string | null>(null)
   const [placing, setPlacing] = useState(false)
   const [uploading, setUploading] = useState<string | null>(null)
+  const [compressing, setCompressing] = useState<string | null>(null)
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
 function update(id: string, patch: Partial<Step>) {
@@ -66,8 +89,11 @@ function update(id: string, patch: Partial<Step>) {
   }
 
   async function uploadImage(stepId: string, file: File) {
+    setCompressing(stepId)
+    const compressed = await compressImage(file)
+    setCompressing(null)
     setUploading(stepId)
-    try { update(stepId, { imageUrl: await onUpload(file) }) }
+    try { update(stepId, { imageUrl: await onUpload(compressed) }) }
     finally { setUploading(null) }
   }
 
@@ -95,6 +121,30 @@ function update(id: string, patch: Partial<Step>) {
           onChange={e => onChange({ ...data, title: e.target.value })}
           placeholder="Comment créer un utilisateur…"
         />
+      </div>
+
+      {/* Slide height */}
+      <div style={b.field}>
+        <label style={b.label}>Hauteur des diapositives</label>
+        <div style={b.segGroup}>
+          {([
+            { label: 'Compact', value: 320 },
+            { label: 'Moyen', value: 480 },
+            { label: 'Large', value: 640 },
+            { label: 'Plein', value: undefined },
+          ] as { label: string; value: number | undefined }[]).map(({ label, value }) => {
+            const isActive = value === undefined ? data.maxHeight === undefined : data.maxHeight === value
+            return (
+              <button
+                key={label}
+                style={{ ...b.seg, flex: 1, background: isActive ? accentColor : 'transparent', color: isActive ? '#fff' : '#666' }}
+                onClick={() => onChange({ ...data, maxHeight: value })}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Steps */}
@@ -126,11 +176,11 @@ function update(id: string, patch: Partial<Step>) {
                 {/* Image */}
                 {!step.imageUrl ? (
                   <div
-                    style={{ ...b.dropZone, borderColor: uploading === step.id ? accentColor : '#2a2a38' }}
-                    onClick={() => fileRefs.current[step.id]?.click()}
+                    style={{ ...b.dropZone, borderColor: (compressing === step.id || uploading === step.id) ? accentColor : '#2a2a38' }}
+                    onClick={() => !(compressing === step.id || uploading === step.id) && fileRefs.current[step.id]?.click()}
                   >
                     <IconUpload />
-                    <span style={b.dropText}>{uploading === step.id ? 'Upload…' : 'Uploader un screenshot'}</span>
+                    <span style={b.dropText}>{compressing === step.id ? 'Compression…' : uploading === step.id ? 'Upload…' : 'Uploader un screenshot'}</span>
                     <span style={b.dropHint}>PNG · JPG · WebP</span>
                     <input ref={el => { fileRefs.current[step.id] = el }} type="file" accept="image/*" style={{ display: 'none' }}
                       onChange={e => e.target.files?.[0] && uploadImage(step.id, e.target.files[0])} />
@@ -317,7 +367,7 @@ const b: Record<string, React.CSSProperties> = {
   dropText: { fontSize: 14, fontWeight: 600, color: '#bbb' },
   dropHint: { fontSize: 12, color: '#444' },
   imgWrap: { position: 'relative', marginTop: 14, display: 'block' },
-  previewImg: { width: '100%', display: 'block', borderRadius: 8, border: '1px solid #1e1e2a' },
+  previewImg: { width: '100%', display: 'block', borderRadius: 8, border: '1px solid #1e1e2a', maxHeight: 380, objectFit: 'contain' as const, background: '#000' },
   placingOverlay: {
     position: 'absolute', inset: 0, background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(2px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
