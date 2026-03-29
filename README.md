@@ -181,6 +181,7 @@ npm run build:wc
 |------|------|---------|-------------|
 | `data` | `WalkthroughData` | required | Walkthrough content |
 | `accentColor` | `string` | `#6366f1` | Theme color for badges, progress bar, buttons |
+| `maxWidth` | `number \| string` | `'100%'` | Largeur max du viewer (ex: `800` ou `"800px"`) |
 
 ### `<WalkthroughBuilder />`
 

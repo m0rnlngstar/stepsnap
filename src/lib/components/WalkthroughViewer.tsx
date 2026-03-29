@@ -5,6 +5,7 @@ interface Props {
   data: WalkthroughData
   accentColor?: string
   maxHeight?: number
+  maxWidth?: number | string
 }
 
 const ArrowSVG = ({ color, size }: { color: string; size: number }) => (
@@ -16,7 +17,7 @@ const ArrowSVG = ({ color, size }: { color: string; size: number }) => (
 const ZOOM_SCALE = 2.2
 const ZOOM_DELAY = 380
 
-export function WalkthroughViewer({ data, accentColor = '#6366f1', maxHeight }: Props) {
+export function WalkthroughViewer({ data, accentColor = '#6366f1', maxHeight, maxWidth }: Props) {
   const resolvedMaxHeight = maxHeight ?? 480
   const [started, setStarted] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -168,19 +169,26 @@ export function WalkthroughViewer({ data, accentColor = '#6366f1', maxHeight }: 
     }
   }
 
+  const maxWidthStyle: React.CSSProperties = {
+    maxWidth: maxWidth ? (typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth) : '100%',
+    margin: '0 auto',
+  }
+
   if (!started) {
     return (
-      <div style={v.intro}>
-        <div style={{ ...v.introBar, background: accentColor }} />
-        <div style={v.introPad}>
-          <span style={{ ...v.introPill, color: accentColor, borderColor: `${accentColor}40`, background: `${accentColor}10` }}>
-            {total} étape{total > 1 ? 's' : ''}
-          </span>
-          <h2 style={v.introH}>{data.title}</h2>
-          <button style={{ ...v.introBtn, background: accentColor }} onClick={() => setStarted(true)}>
-            Commencer
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </button>
+      <div style={maxWidthStyle}>
+        <div style={v.intro}>
+          <div style={{ ...v.introBar, background: accentColor }} />
+          <div style={v.introPad}>
+            <span style={{ ...v.introPill, color: accentColor, borderColor: `${accentColor}40`, background: `${accentColor}10` }}>
+              {total} étape{total > 1 ? 's' : ''}
+            </span>
+            <h2 style={v.introH}>{data.title}</h2>
+            <button style={{ ...v.introBtn, background: accentColor }} onClick={() => setStarted(true)}>
+              Commencer
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -197,6 +205,7 @@ export function WalkthroughViewer({ data, accentColor = '#6366f1', maxHeight }: 
     : { transform: 'scale(1)', transformOrigin: `${ann?.x ?? 50}% ${ann?.y ?? 50}%`, transition: 'transform 0.45s cubic-bezier(0.4,0,0.2,1)' }
 
   return (
+    <div style={maxWidthStyle}>
     <div ref={containerRef} style={{ ...v.shell, ...(isFullscreen ? v.shellFullscreen : {}) }}>
       {/* Top bar */}
       <div style={v.topBar}>
@@ -305,6 +314,7 @@ export function WalkthroughViewer({ data, accentColor = '#6366f1', maxHeight }: 
           to   { transform: translate(-50%,-50%) translateY(-7px); }
         }
       `}</style>
+    </div>
     </div>
   )
 }
