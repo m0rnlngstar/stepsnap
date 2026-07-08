@@ -19,8 +19,9 @@ Create step-by-step visual guides with annotated screenshots, smooth transitions
 ## Features
 
 - **Builder** — upload screenshots, click to place annotations (circle or arrow), resize, reorder steps
-- **Viewer** — slide-by-slide walkthrough with smooth transitions, animated annotations, progress bar
-- **Auto-zoom** — optionally zoom in on the annotation point when a slide appears
+- **Viewer** — slide-by-slide walkthrough with smooth transitions, animated annotations, clickable progress bar, swipe navigation on mobile
+- **Annotation effects** — pulse, ping, spotlight (dims everything but the target), glow
+- **Auto-zoom** — optionally zoom in on the annotation point when a slide appears, with adjustable zoom level (×1.5–×4)
 - **Click anywhere** to advance to the next step
 - **Storage-agnostic** — plug in your own upload function (Vercel Blob, S3, Cloudinary…)
 - **Standalone embed** — use on any webpage without React via a single `<script>` tag
@@ -200,6 +201,7 @@ npm run build:wc
 interface WalkthroughData {
   title: string
   steps: Step[]
+  maxHeight?: number // slide height cap in px (default 480)
 }
 
 interface Step {
@@ -215,8 +217,10 @@ interface Annotation {
   y: number        // % from top (0–100)
   color: string    // CSS color
   animated: boolean
+  effect?: 'pulse' | 'ping' | 'spotlight' | 'glow' // animation style (default 'pulse')
   size: number     // px — diameter for circle, height for arrow
   zoom: boolean    // auto-zoom on annotation when slide appears
+  zoomLevel?: number // zoom scale factor (default 2.2)
 }
 ```
 

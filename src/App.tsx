@@ -16,14 +16,11 @@ export default function App() {
   const [mode, setMode] = useState<'edit' | 'preview'>('edit')
 
   return (
-    <div style={{
-      minHeight: '100vh', background: '#07070b', color: '#e0e0ec',
-      fontFamily: "'Inter', system-ui, sans-serif",
-    }}>
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 20px' }}>
+    <div style={{ minHeight: '100vh' }}>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: 'clamp(20px, 5vw, 40px) clamp(14px, 4vw, 20px)' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 28, height: 28, borderRadius: 8, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -39,7 +36,7 @@ export default function App() {
                 padding: '6px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
                 fontSize: 13, fontWeight: 600, transition: 'all .15s',
                 background: mode === m ? '#1e1e2e' : 'transparent',
-                color: mode === m ? '#e0e0ec' : '#444',
+                color: mode === m ? '#e0e0ec' : '#555',
                 boxShadow: mode === m ? '0 1px 4px rgba(0,0,0,.4)' : 'none',
               }}>
                 {m === 'edit' ? 'Éditeur' : 'Aperçu'}

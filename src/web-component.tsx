@@ -32,7 +32,9 @@ class StepSnapViewer extends HTMLElement {
     let data: WalkthroughData = { title: '', steps: [] }
     try {
       if (rawData) data = JSON.parse(rawData)
-    } catch {}
+    } catch {
+      console.warn('[stepsnap-viewer] invalid JSON in "data" attribute')
+    }
     this.root.render(<WalkthroughViewer data={data} accentColor={accentColor} />)
   }
 }

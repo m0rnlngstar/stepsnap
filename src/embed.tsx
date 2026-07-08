@@ -8,7 +8,7 @@
  *       accentColor: '#6366f1',
  *       data: {
  *         title: 'Mon guide',
- *         steps: [{ id: '1', imageUrl: '...', caption: '...', annotation: { type: 'circle', x: 50, y: 30, color: '#6366f1', animated: true, size: 40, zoom: true } }]
+ *         steps: [{ id: '1', imageUrl: '...', caption: '...', annotation: { type: 'circle', x: 50, y: 30, color: '#6366f1', animated: true, effect: 'pulse', size: 40, zoom: true, zoomLevel: 2.2 } }]
  *       }
  *     })
  *   </script>

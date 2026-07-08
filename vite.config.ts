@@ -1,16 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import dts from 'vite-plugin-dts'
 import { resolve } from 'path'
 
 // Build mode: 'lib' (npm package) or 'embed' (standalone script tag)
 const mode = process.env.BUILD_MODE ?? 'lib'
 
-export default defineConfig({
-  plugins: [
-    react(),
-    ...(mode === 'lib' ? [dts({ include: ['src/lib'] })] : []),
-  ],
+export default defineConfig(({ command }) => ({
+  // keep demo assets (favicon…) out of library/embed builds, but serve them in dev
+  publicDir: command === 'build' ? false : 'public',
+  plugins: [react()],
   build:
     mode === 'embed'
       ? {
@@ -43,4 +41,4 @@ export default defineConfig({
             },
           },
         },
-})
+}))
