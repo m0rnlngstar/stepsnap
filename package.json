@@ -1,6 +1,6 @@
 {
   "name": "stepsnap",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Annotated screenshot walkthrough builder & viewer — open-source alternative to Scribe",
   "type": "module",
   "main": "./dist/stepsnap.umd.cjs",
