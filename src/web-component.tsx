@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { WalkthroughViewer } from './lib/components/WalkthroughViewer'
+import { sanitizeWalkthroughData, sanitizeColor } from './lib/sanitize'
 import type { WalkthroughData } from './lib/types'
 
 class StepSnapViewer extends HTMLElement {
@@ -28,10 +29,10 @@ class StepSnapViewer extends HTMLElement {
   private render() {
     if (!this.root) return
     const rawData = this.getAttribute('data')
-    const accentColor = this.getAttribute('accent-color') ?? '#6366f1'
+    const accentColor = sanitizeColor(this.getAttribute('accent-color'), '#6366f1')
     let data: WalkthroughData = { title: '', steps: [] }
     try {
-      if (rawData) data = JSON.parse(rawData)
+      if (rawData) data = sanitizeWalkthroughData(JSON.parse(rawData))
     } catch {
       console.warn('[stepsnap-viewer] invalid JSON in "data" attribute')
     }

@@ -15,6 +15,7 @@
  */
 import { createRoot } from 'react-dom/client'
 import { WalkthroughViewer } from './lib/components/WalkthroughViewer'
+import { sanitizeWalkthroughData, sanitizeColor } from './lib/sanitize'
 import type { WalkthroughData } from './lib/types'
 
 interface MountOptions {
@@ -42,8 +43,8 @@ function mount(selector: string | Element, options: MountOptions) {
 
   root.render(
     <WalkthroughViewer
-      data={options.data}
-      accentColor={options.accentColor}
+      data={sanitizeWalkthroughData(options.data)}
+      accentColor={options.accentColor ? sanitizeColor(options.accentColor, '#6366f1') : undefined}
     />
   )
 }

@@ -48,8 +48,24 @@ export default function App() {
         {/* Content */}
         {mode === 'edit' ? (
           <WalkthroughBuilder data={data} onChange={setData} onUpload={fakeUpload} accentColor={ACCENT} />
-        ) : (
+        ) : data.steps.length > 0 ? (
           <WalkthroughViewer data={data} accentColor={ACCENT} maxHeight={data.maxHeight} />
+        ) : (
+          <div style={{
+            border: '1px dashed #26263a', borderRadius: 14, padding: '48px 24px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center',
+          }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#c8c8da' }}>Rien à prévisualiser</span>
+            <span style={{ fontSize: 13, color: '#55556a', maxWidth: 340, lineHeight: 1.5 }}>
+              Ajoutez des étapes dans l'éditeur, puis revenez ici pour voir votre guide.
+            </span>
+            <button onClick={() => setMode('edit')} style={{
+              marginTop: 6, padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: ACCENT, color: '#fff', fontSize: 13, fontWeight: 700,
+            }}>
+              Ouvrir l'éditeur
+            </button>
+          </div>
         )}
       </div>
     </div>

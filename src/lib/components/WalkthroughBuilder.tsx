@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { WalkthroughData, Step, AnnotationType, AnnotationEffect, UploadFn } from '../types'
 
 interface Props {
@@ -8,10 +8,27 @@ interface Props {
   accentColor?: string
 }
 
-function uid() { return Math.random().toString(36).slice(2, 10) }
+function uid() {
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID().slice(0, 8)
+    : Math.random().toString(36).slice(2, 10)
+}
 
+const MAX_FILE_MB = 25
+
+function validateImageFile(file: File): string | null {
+  if (!file.type.startsWith('image/') || file.type === 'image/svg+xml') {
+    return 'Format non supporté — utilisez PNG, JPG ou WebP.'
+  }
+  if (file.size > MAX_FILE_MB * 1024 * 1024) {
+    return `Image trop lourde (max ${MAX_FILE_MB} Mo).`
+  }
+  return null
+}
+
+// Re-encoding through a canvas also strips metadata and any embedded payload.
 async function compressImage(file: File, maxWidth = 1920, quality = 0.82): Promise<File> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
     img.onload = () => {
@@ -27,7 +44,7 @@ async function compressImage(file: File, maxWidth = 1920, quality = 0.82): Promi
         quality
       )
     }
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('unreadable image')) }
     img.src = url
   })
 }
@@ -77,6 +94,8 @@ export function WalkthroughBuilder({ data, onChange, onUpload, accentColor = '#6
   const [placing, setPlacing] = useState(false)
   const [uploading, setUploading] = useState<string | null>(null)
   const [compressing, setCompressing] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState<{ stepId: string; message: string } | null>(null)
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   function update(id: string, patch: Partial<Step>) {
@@ -105,13 +124,39 @@ export function WalkthroughBuilder({ data, onChange, onUpload, accentColor = '#6
   }
 
   async function uploadImage(stepId: string, file: File) {
+    const invalid = validateImageFile(file)
+    if (invalid) { setUploadError({ stepId, message: invalid }); return }
+    setUploadError(null)
     setCompressing(stepId)
-    const compressed = await compressImage(file)
+    let compressed: File
+    try { compressed = await compressImage(file) }
+    catch {
+      setCompressing(null)
+      setUploadError({ stepId, message: 'Impossible de lire cette image.' })
+      return
+    }
     setCompressing(null)
     setUploading(stepId)
     try { update(stepId, { imageUrl: await onUpload(compressed) }) }
+    catch { setUploadError({ stepId, message: "L'upload a échoué. Réessayez." }) }
     finally { setUploading(null) }
   }
+
+  // Paste a screenshot (Ctrl+V) directly into the open, empty step
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      if (!openId) return
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
+      const step = data.steps.find(s => s.id === openId)
+      if (!step || step.imageUrl) return
+      const item = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith('image/'))
+      const file = item?.getAsFile()
+      if (file) { e.preventDefault(); uploadImage(openId, file) }
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  })
 
   function placeAnnotation(e: React.MouseEvent<HTMLDivElement>, step: Step) {
     if (!placing) return
@@ -161,6 +206,19 @@ export function WalkthroughBuilder({ data, onChange, onUpload, accentColor = '#6
         </div>
       </div>
 
+      {/* Empty state */}
+      {data.steps.length === 0 && (
+        <div className="ssb-empty">
+          <div className="ssb-empty-icon" style={{ background: `${accentColor}18`, color: accentColor }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="14" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 13l-4.5-4.5L7 18"/>
+            </svg>
+          </div>
+          <span className="ssb-empty-title">Aucune étape pour l'instant</span>
+          <span className="ssb-empty-hint">Ajoutez une étape, puis déposez ou collez un screenshot pour construire votre guide pas à pas.</span>
+        </div>
+      )}
+
       {/* Steps */}
       {data.steps.map((step, idx) => {
         const isOpen = openId === step.id
@@ -190,16 +248,29 @@ export function WalkthroughBuilder({ data, onChange, onUpload, accentColor = '#6
 
                 {/* Image */}
                 {!step.imageUrl ? (
-                  <div
-                    className="ssb-drop"
-                    style={busy ? { borderColor: accentColor } : undefined}
-                    onClick={() => !busy && fileRefs.current[step.id]?.click()}
-                  >
-                    <IconUpload />
-                    <span className="ssb-drop-text">{compressing === step.id ? 'Compression…' : uploading === step.id ? 'Upload…' : 'Uploader un screenshot'}</span>
-                    <span className="ssb-drop-hint">PNG · JPG · WebP</span>
-                    <input ref={el => { fileRefs.current[step.id] = el }} type="file" accept="image/*" style={{ display: 'none' }}
-                      onChange={e => e.target.files?.[0] && uploadImage(step.id, e.target.files[0])} />
+                  <div>
+                    <div
+                      className={`ssb-drop${dragOver === step.id ? ' ssb-drop-over' : ''}`}
+                      style={busy || dragOver === step.id ? { borderColor: accentColor } : undefined}
+                      onClick={() => !busy && fileRefs.current[step.id]?.click()}
+                      onDragOver={e => { e.preventDefault(); if (!busy) setDragOver(step.id) }}
+                      onDragLeave={() => setDragOver(null)}
+                      onDrop={e => {
+                        e.preventDefault()
+                        setDragOver(null)
+                        const file = e.dataTransfer.files?.[0]
+                        if (file && !busy) uploadImage(step.id, file)
+                      }}
+                    >
+                      <IconUpload />
+                      <span className="ssb-drop-text">{compressing === step.id ? 'Compression…' : uploading === step.id ? 'Upload…' : 'Déposez un screenshot ici'}</span>
+                      <span className="ssb-drop-hint">Cliquez, glissez-déposez ou collez (Ctrl+V) · PNG · JPG · WebP</span>
+                      <input ref={el => { fileRefs.current[step.id] = el }} type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ display: 'none' }}
+                        onChange={e => { if (e.target.files?.[0]) { uploadImage(step.id, e.target.files[0]); e.target.value = '' } }} />
+                    </div>
+                    {uploadError?.stepId === step.id && (
+                      <div className="ssb-error" role="alert">⚠ {uploadError.message}</div>
+                    )}
                   </div>
                 ) : (
                   <div>
@@ -420,6 +491,12 @@ const CSS = `
 .ssb-panel{padding:0 14px 16px;display:flex;flex-direction:column;gap:16px;border-top:1px solid #1a1a24;animation:ssb-panel-in .25s cubic-bezier(.22,.61,.36,1)}
 .ssb-drop{margin-top:14px;border:2px dashed #2a2a38;border-radius:10px;padding:28px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;text-align:center;transition:border-color .2s,background .2s}
 .ssb-drop:hover{border-color:var(--ss-accent);background:color-mix(in srgb,var(--ss-accent) 5%,transparent)}
+.ssb-drop-over{background:color-mix(in srgb,var(--ss-accent) 10%,transparent);transform:scale(1.01)}
+.ssb-error{margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.35);color:#fca5a5;font-size:12.5px;font-weight:600;animation:ssb-panel-in .2s ease}
+.ssb-empty{border:1px dashed #26263a;border-radius:14px;padding:34px 24px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.ssb-empty-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.ssb-empty-title{font-size:14px;font-weight:700;color:#c8c8da}
+.ssb-empty-hint{font-size:12.5px;color:#55556a;max-width:340px;line-height:1.5}
 .ssb-drop-text{font-size:14px;font-weight:600;color:#bbb}
 .ssb-drop-hint{font-size:12px;color:#444}
 .ssb-imgwrap{position:relative;margin-top:14px;display:block}
